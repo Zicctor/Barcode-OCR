@@ -4,4 +4,3 @@ Pillow
 pyzbar
 pytesseract
 streamlit
-cv2
