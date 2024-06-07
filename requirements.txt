@@ -1,6 +1,6 @@
-cv2==4.8.1
-numpy==1.21.2
-Pillow==8.3.2
-pyzbar==0.1.8
-pytesseract==0.3.8
-streamlit==1.0.0
+opencv-python
+numpy
+Pillow
+pyzbar
+pytesseract
+streamlit
