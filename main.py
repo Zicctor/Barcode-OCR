@@ -13,7 +13,7 @@ def process_image(image_path):
         img = img.rotate(90, expand=True)
 
     draw = ImageDraw.Draw(img)
-    font_path = '/home/zicctor-vu/Downloads/simfang.ttf'
+    font_path = 'simfang.ttf'
     font = ImageFont.truetype(font_path, size=20)
 
     detected_texts = []
