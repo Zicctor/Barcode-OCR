@@ -5,7 +5,7 @@ from pyzbar.pyzbar import decode
 from PIL import Image
 
 pytesseract.pytesseract.tesseract_cmd ='tesseract'
-tessdata_dir_config = --tessdata-dir "."
+tessdata_dir_config = '--tessdata-dir "."'
 
 def preprocess_image(image_cv):
     # Convert to grayscale
