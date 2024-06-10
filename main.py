@@ -45,8 +45,11 @@ def detect_and_highlight_barcode(image):
         text_region_y_end = y + h + padding + 40
 
         # Ensure the region is within image boundaries
-        if text_region_y_end <= image_cv.shape[0] and x + w <= image_cv.shape[1]:
+        if text_region_y_start < image_cv.shape[0] and text_region_y_end <= image_cv.shape[0] and x < image_cv.shape[1] and x + w <= image_cv.shape[1]:
             text_region = image_cv[text_region_y_start:text_region_y_end, x:x + w]
+            
+            # Debugging: Log the region coordinates
+            print(f'Text region coordinates: x={x}, y_start={text_region_y_start}, y_end={text_region_y_end}, w={w}')
             
             # Convert the text region to grayscale
             text_region_gray = cv2.cvtColor(text_region, cv2.COLOR_BGR2GRAY)
@@ -58,6 +61,9 @@ def detect_and_highlight_barcode(image):
                 barcode_data_list.append((text_data, "Text"))
                 # Draw a rectangle around the detected text
                 cv2.rectangle(image_cv, (x, text_region_y_start), (x + w, text_region_y_end), (255, 0, 0), 10)  # Blue rectangle
+        else:
+            # Debugging: Log the reason why the region was not processed
+            print(f'Out of bounds: x={x}, y_start={text_region_y_start}, y_end={text_region_y_end}, w={w}, img_height={image_cv.shape[0]}, img_width={image_cv.shape[1]}')
     
     return image_cv, barcode_data_list
 
