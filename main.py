@@ -1,59 +1,86 @@
+import streamlit as st
 import cv2
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
 from pyzbar.pyzbar import decode
-import pytesseract
-import re
-import streamlit as st
+from PIL import Image
 
-# Specify the path to the Tesseract executable
-pytesseract.pytesseract.tesseract_cmd ='tesseract'
-tessdata_dir_config = '--tessdata-dir "."'
+def preprocess_image(image_cv):
+    # Convert to grayscale
+    gray = cv2.cvtColor(image_cv, cv2.COLOR_BGR2GRAY)
+    
+    # Apply Gaussian blur to reduce noise and improve edge detection
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    
+    # Sharpen the image
+    kernel = np.array([[0, -1, 0], [-1, 5,-1], [0, -1, 0]])
+    sharpened = cv2.filter2D(blurred, -1, kernel)
+    
+    return sharpened
 
-def process_image(image_path):
-    img = Image.open(image_path)
+def detect_and_highlight_barcode(image):
+    image_cv = np.array(image)
+    barcode_data_list = []
 
-    if img.height > img.width:
-        img = img.rotate(90, expand=True)
+    preprocessed_image = preprocess_image(image_cv)
+    
+    barcodes = decode(preprocessed_image)
+    
+    for barcode in barcodes:
+        # Extract the bounding box coordinates
+        x, y, w, h = barcode.rect
+        # Crop the barcode from the image
+        barcode_crop = image_cv[y:y + h, x:x + w]
+        
+        # Convert to PIL format for any additional preprocessing if needed
+        pil_image = Image.fromarray(barcode_crop)
+        
+        # Convert back to OpenCV format
+        barcode_crop = np.array(pil_image)
+        
+        # Highlight the barcode with a thick rectangle
+        cv2.rectangle(image_cv, (x, y), (x + w, y + h), (0, 255, 0), 10)  # Green rectangle with thickness 10
+        
+        # Extract and store the barcode data
+        barcode_data = barcode.data.decode('utf-8')
+        barcode_type = barcode.type
+        
+        barcode_data_list.append((barcode_data, barcode_type))
+    
+    return image_cv, barcode_data_list
 
-    draw = ImageDraw.Draw(img)
-    font_path = 'simfang.ttf'
-    font = ImageFont.truetype(font_path, size=20)
+st.title("Barcode Scanner App")
 
-    detected_texts = []
-
-    for d in decode(img):
-        if d.type != 'QRCODE':
-            barcode_data = d.data.decode()
-            draw.rectangle(((d.rect.left, d.rect.top), (d.rect.left + d.rect.width, d.rect.top + d.rect.height)),
-                           outline=(0, 0, 255), width=3)
-            buffer = 10
-            text_region = (d.rect.left, d.rect.top + d.rect.height + buffer,
-                           d.rect.left + d.rect.width, d.rect.top + d.rect.height + buffer + 50)
-            text_image = img.crop(text_region)
-            text_image_cv = np.array(text_image)
-            text_image_cv = cv2.cvtColor(text_image_cv, cv2.COLOR_RGB2GRAY)
-            custom_config = r'--oem 3 --psm 6'
-            detected_text = pytesseract.image_to_string(text_image_cv, config=custom_config).strip()
-            filtered_text = re.sub('[^A-Z0-9]', '', detected_text)
-            draw.text((d.rect.left, d.rect.top + d.rect.height + buffer), detected_text, (255, 0, 0), font=font)
-            detected_texts.append((detected_text, filtered_text))
-
-    open_cv_image = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
-    return img, detected_texts, open_cv_image
-
-st.title("Barcode and Text Detection")
-uploaded_file = st.file_uploader("Upload an image", type=["jpeg", "jpg", "png"])
+uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    with st.spinner('Processing...'):
-        img, detected_texts, open_cv_image = process_image(uploaded_file)
+    # Open the image
+    image = Image.open(uploaded_file)
+    
+    # Detect and highlight the barcode
+    result_image, barcode_data_list = detect_and_highlight_barcode(image)
+    
+    # Convert the result image to PIL format for display
+    result_image_pil = Image.fromarray(result_image)
+    
+    # Display the original and result images
+    st.image(image, caption="Uploaded Image", use_column_width=True)
+    st.image(result_image_pil, caption="Processed Image with Barcode Highlighted", use_column_width=True)
+    
+    # Display barcode data
+    st.subheader("Detected Barcodes")
+    for barcode_data, barcode_type in barcode_data_list:
+        st.write(f"Type: {barcode_type}, Data: {barcode_data}")
 
-        st.image(img, caption='Processed Image', use_column_width=True)
+    # Convert the PIL image to bytes for downloading
+    import io
+    buf = io.BytesIO()
+    result_image_pil.save(buf, format="PNG")
+    byte_im = buf.getvalue()
 
-        st.subheader("Detected Texts")
-        for i, (detected_text, filtered_text) in enumerate(detected_texts):
-            st.write(f"Barcode Text is: {filtered_text}")
-
-        st.subheader("OpenCV Image")
-        st.image(open_cv_image, channels="BGR", use_column_width=True)
+    # Provide download button for the processed image
+    st.download_button(
+        label="Download Processed Image",
+        data=byte_im,
+        file_name="processed_image.png",
+        mime="image/png"
+    )
