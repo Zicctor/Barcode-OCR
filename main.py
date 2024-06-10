@@ -41,18 +41,23 @@ def detect_and_highlight_barcode(image):
         
         # Define the region below the barcode to search for text
         padding = 10
-        text_region = image_cv[y + h + padding:y + h + padding + 40, x:x + w]
-        
-        # Convert the text region to grayscale
-        text_region_gray = cv2.cvtColor(text_region, cv2.COLOR_BGR2GRAY)
-        
-        # Use pytesseract to extract text from the region
-        text_data = pytesseract.image_to_string(text_region_gray, config='--psm 7').strip()
-        
-        if text_data:
-            barcode_data_list.append((text_data, "Text"))
-            # Draw a rectangle around the detected text
-            cv2.rectangle(image_cv, (x, y + h + padding), (x + w, y + h + padding + 40), (255, 0, 0), 10)  # Blue rectangle
+        text_region_y_start = y + h + padding
+        text_region_y_end = y + h + padding + 40
+
+        # Ensure the region is within image boundaries
+        if text_region_y_end <= image_cv.shape[0] and x + w <= image_cv.shape[1]:
+            text_region = image_cv[text_region_y_start:text_region_y_end, x:x + w]
+            
+            # Convert the text region to grayscale
+            text_region_gray = cv2.cvtColor(text_region, cv2.COLOR_BGR2GRAY)
+            
+            # Use pytesseract to extract text from the region
+            text_data = pytesseract.image_to_string(text_region_gray, config='--psm 7').strip()
+            
+            if text_data:
+                barcode_data_list.append((text_data, "Text"))
+                # Draw a rectangle around the detected text
+                cv2.rectangle(image_cv, (x, text_region_y_start), (x + w, text_region_y_end), (255, 0, 0), 10)  # Blue rectangle
     
     return image_cv, barcode_data_list
 
