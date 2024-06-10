@@ -8,6 +8,7 @@ import streamlit as st
 
 # Specify the path to the Tesseract executable
 pytesseract.pytesseract.tesseract_cmd ='tesseract'
+tessdata_dir_config = '--tessdata-dir "."'
 
 def process_image(image_path):
     img = Image.open(image_path)
