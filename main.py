@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 from pyzbar.pyzbar import decode
 from PIL import Image
+import pytesseract
 
 def preprocess_image(image_cv):
     # Convert to grayscale
@@ -28,14 +29,6 @@ def detect_and_highlight_barcode(image):
     for barcode in barcodes:
         # Extract the bounding box coordinates
         x, y, w, h = barcode.rect
-        # Crop the barcode from the image
-        barcode_crop = image_cv[y:y + h, x:x + w]
-        
-        # Convert to PIL format for any additional preprocessing if needed
-        pil_image = Image.fromarray(barcode_crop)
-        
-        # Convert back to OpenCV format
-        barcode_crop = np.array(pil_image)
         
         # Highlight the barcode with a thick rectangle
         cv2.rectangle(image_cv, (x, y), (x + w, y + h), (0, 255, 0), 10)  # Green rectangle with thickness 10
@@ -45,6 +38,21 @@ def detect_and_highlight_barcode(image):
         barcode_type = barcode.type
         
         barcode_data_list.append((barcode_data, barcode_type))
+        
+        # Define the region below the barcode to search for text
+        padding = 10
+        text_region = image_cv[y + h + padding:y + h + padding + 40, x:x + w]
+        
+        # Convert the text region to grayscale
+        text_region_gray = cv2.cvtColor(text_region, cv2.COLOR_BGR2GRAY)
+        
+        # Use pytesseract to extract text from the region
+        text_data = pytesseract.image_to_string(text_region_gray, config='--psm 7').strip()
+        
+        if text_data:
+            barcode_data_list.append((text_data, "Text"))
+            # Draw a rectangle around the detected text
+            cv2.rectangle(image_cv, (x, y + h + padding), (x + w, y + h + padding + 40), (255, 0, 0), 10)  # Blue rectangle
     
     return image_cv, barcode_data_list
 
@@ -75,7 +83,7 @@ if uploaded_file is not None:
     st.image(result_image_pil, caption="Processed Image with Barcode Highlighted", use_column_width=True)
     
     # Display barcode data
-    st.subheader("Detected Barcodes")
+    st.subheader("Detected Barcodes and Text")
     for barcode_data, barcode_type in barcode_data_list:
         st.write(f"Type: {barcode_type}, Data: {barcode_data}")
 
