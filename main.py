@@ -4,6 +4,9 @@ import numpy as np
 from pyzbar.pyzbar import decode
 from PIL import Image
 
+pytesseract.pytesseract.tesseract_cmd ='tesseract'
+tessdata_dir_config = '--tessdata-dir "."
+
 def preprocess_image(image_cv):
     # Convert to grayscale
     gray = cv2.cvtColor(image_cv, cv2.COLOR_BGR2GRAY)
