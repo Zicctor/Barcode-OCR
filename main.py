@@ -12,7 +12,7 @@ def preprocess_image(image_cv):
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     
     # Sharpen the image
-    kernel = np.array([[0, -1, 0], [-1, 5,-1], [0, -1, 0]])
+    kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
     sharpened = cv2.filter2D(blurred, -1, kernel)
     
     return sharpened
@@ -48,6 +48,11 @@ def detect_and_highlight_barcode(image):
     
     return image_cv, barcode_data_list
 
+def rotate_image_if_vertical(image):
+    if image.height > image.width:
+        image = image.rotate(90, expand=True)
+    return image
+
 st.title("Barcode Scanner App")
 
 uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
@@ -55,6 +60,9 @@ uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 if uploaded_file is not None:
     # Open the image
     image = Image.open(uploaded_file)
+    
+    # Rotate the image if it's vertical
+    image = rotate_image_if_vertical(image)
     
     # Detect and highlight the barcode
     result_image, barcode_data_list = detect_and_highlight_barcode(image)
