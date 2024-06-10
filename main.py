@@ -6,6 +6,9 @@ import pytesseract
 import re
 import streamlit as st
 
+# Specify the path to the Tesseract executable
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'  # Update this path if necessary
+
 def process_image(image_path):
     img = Image.open(image_path)
 
